@@ -1,5 +1,6 @@
 import bcrypt from "bcryptjs";
 import User from "../models/user.model.js";
+import generateToken from "../utils/generateToken.js";
 
 export const signup = async (req, res) => {
     try {
@@ -23,6 +24,9 @@ export const signup = async (req, res) => {
         const newUser = new User({ email, password: hashedPassword, pfp });
 
         if (newUser) {
+            // Generate JWT Token
+            await generateToken(newUser._id, res);
+
             await newUser.save();
 
             res.status(201).json({
@@ -39,10 +43,41 @@ export const signup = async (req, res) => {
     }
 }
 
-export const login = (req, res) => {
-    console.log("login User");
+export const login = async (req, res) => {
+    try {
+        const { email, password } = req.body;
+
+        const user = await User.findOne({ email });
+
+        if (!user) {
+            return res.status(404).json({ message: "User not found" });
+        }
+        const validPassword = await bcrypt.compare(password, user.password);
+        if (!validPassword) {
+            return res.status(400).json({ message: "Incorrect Password" });
+        }
+
+        // Generate JWT Token
+        generateToken(user._id, res);
+
+        res.status(200).json({
+            _id: user._id,
+            email: user.email,
+            pfp: user.pfp,
+        });
+
+    } catch (error) {
+        console.log("Error in login controller", error.message);
+        res.status(500).json({ message: "Internal Server Error" });
+    }
 }
 
 export const logout = (req, res) => {
-    console.log("logout User");
+    try {
+        res.cookie("jwt", "", { maxAge: 0 });
+        res.status(200).json({ message: "Logged out successfully" });
+    } catch (error) {
+        console.log("Error in logout controller", error.message);
+        res.status(500).json({ message: "Internal Server Error" });
+    }
 }
