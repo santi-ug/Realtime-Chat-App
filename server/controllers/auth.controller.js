@@ -6,6 +6,22 @@ export const signup = async (req, res) => {
     try {
         const { email, password, confirmPassword } = req.body;
 
+        // Check if email was properly entered
+        if (!email.includes('@') || !email.includes('.') || !email) {
+            return res.json({
+                error: 'Ingrese el correo correctamente',
+                status: 400
+            })
+        };
+
+        // Check if password is good
+        if (!password || password.length < 8) {
+            return res.json({
+                error: 'Contraseña es requerida y debe tener 8 caracteres minimo.',
+                status: 400
+            })
+        };
+
         if (password !== confirmPassword) {
             return res.status(400).json({ message: "Password don't match" });
         }
